@@ -4,3 +4,4 @@ Spark 2.x has significant improvement over 1.x. This repository collects study m
 2. Spark SQL
 3. Spark MLlib
 4. Spark GraphX (& GraphFrame)
+5. Spark Streaming

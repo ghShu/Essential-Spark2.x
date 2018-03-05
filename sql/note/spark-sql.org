@@ -1,7 +1,12 @@
 #+startup hidestars indent showall
 #+title: note on Spark SQL source code
 
-* Catalyst
+* Why Spark SQL
+  :PROPERTIES:
+  :ID:       6bcafa0c-1109-4aa7-80f1-2140c8e98570
+  :END:
+
+* Catalyst optimizer
   :PROPERTIES:
   :ID:       17e0553b-2afd-4019-992a-d41408fcdbad
   :END:

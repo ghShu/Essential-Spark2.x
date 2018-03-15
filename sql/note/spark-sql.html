@@ -1,0 +1,964 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2018-03-14 Wed 13:32 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>note on Spark SQL source code</title>
+<meta name="generator" content="Org mode" />
+<meta name="author" content="Simon" />
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #ccc;
+    box-shadow: 3px 3px 3px #eee;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: visible;
+    padding-top: 1.2em;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    background-color: white;
+    top: -10px;
+    right: 10px;
+    padding: 3px;
+    border: 1px solid black;
+  }
+  pre.src:hover:before { display: inline;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'Javascript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { width: 90%; }
+  /*]]>*/-->
+</style>
+<script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012-2017 Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+        displayAlign: "center",
+        displayIndent: "0em",
+
+        "HTML-CSS": { scale: 100,
+                        linebreaks: { automatic: "false" },
+                        webFont: "TeX"
+                       },
+        SVG: {scale: 100,
+              linebreaks: { automatic: "false" },
+              font: "TeX"},
+        NativeMML: {scale: 100},
+        TeX: { equationNumbers: {autoNumber: "AMS"},
+               MultLineWidth: "85%",
+               TagSide: "right",
+               TagIndent: ".8em"
+             }
+});
+</script>
+<script type="text/javascript"
+        src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS_HTML"></script>
+</head>
+<body>
+<div id="content">
+<h1 class="title">note on Spark SQL source code</h1>
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#orga7b6cb4">1. Why Spark SQL?</a></li>
+<li><a href="#orgfa8d6f7">2. Catalyst optimizer</a>
+<ul>
+<li><a href="#orgc48e197">2.1. Analysis of logical plan (Analyzer)</a>
+<ul>
+<li><a href="#org1ffbc45">2.1.1. An attribute is called unresolved if we do not know its type or have not matched it to an input table ( or an alias)</a></li>
+<li><a href="#org35bb8c6">2.1.2. Spark SQL uses Catalyst rules and Catalog object that tracks the tables in all data sources to resolve these attributes.</a></li>
+</ul>
+</li>
+<li><a href="#orged1f34e">2.2. Logical optimization (Optimizer)</a>
+<ul>
+<li><a href="#org7267d08">2.2.1. three kinds of operatorOptimizationRule</a></li>
+<li><a href="#orga670c31">2.2.2. CombineFilters</a></li>
+<li><a href="#orgeff4e7a">2.2.3. <span class="done DONE">DONE</span> ReorderJoin</a></li>
+<li><a href="#org28f8745">2.2.4. 3-stage batch</a></li>
+<li><a href="#orgcaabfec">2.2.5. Remaining questions</a></li>
+</ul>
+</li>
+<li><a href="#orga3db699">2.3. <span class="done DONE">DONE</span> Cost based optimization (CBO) (CostBasedJoinReorder.scala)</a>
+<ul>
+<li><a href="#orge378a9b">2.3.1. SQLConf  (source link) is a internal configuration store for parameters and hints used in Spark SQL. It offers the following methods to configure properties:</a></li>
+<li><a href="#org0b2a2f2">2.3.2. apply</a></li>
+<li><a href="#org8ca9bbb">2.3.3. reorder</a></li>
+<li><a href="#org167e918">2.3.4. replaceWithOrderedJoin</a></li>
+</ul>
+</li>
+<li><a href="#org46b92ea">2.4. <span class="todo STARTED">STARTED</span> Logical plan to physical plan (SparkStrategies.scala)</a>
+<ul>
+<li><a href="#org0c97dee">2.4.1. SparkPlanner extends SparkStrategies (SparkPlanner.scala)</a></li>
+</ul>
+</li>
+<li><a href="#org30e0bfc">2.5. <span class="todo STARTED">STARTED</span> Physical plan</a></li>
+<li><a href="#org36f06a5">2.6. Code generation</a>
+<ul>
+<li><a href="#orgac32edf">2.6.1. Quasiquote</a></li>
+</ul>
+</li>
+<li><a href="#org6f04307">2.7. Limits of Catalyst optimizer</a>
+<ul>
+<li><a href="#org27d8301">2.7.1. Cannot optimize functional operation (such as filer)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#org922b4f0">3. GraphFrame on Spark SQL</a>
+<ul>
+<li><a href="#org178e14e">3.1. Graphframe inside Spark</a></li>
+</ul>
+</li>
+<li><a href="#orgfdb8a49">4. Related questions</a>
+<ul>
+<li><a href="#orgd9fe46e">4.1. <span class="todo TODO">TODO</span> Why does my code on Spark SQL run slower than SQL server</a></li>
+<li><a href="#org9ff1af3">4.2. <span class="todo TODO">TODO</span> In DF API, logical plan is eagerly evaluated while query results is computed lazily. Create an example for this.</a></li>
+</ul>
+</li>
+<li><a href="#org22b5ed0">5. Related reading</a>
+<ul>
+<li><a href="#orgf11366a">5.1. <span class="todo TODO">TODO</span> Spanner: Becoming a SQL System</a></li>
+</ul>
+</li>
+<li><a href="#org0e8643f">6. References</a>
+<ul>
+<li><a href="#orgd26dbee">6.1. <span class="done DONE">DONE</span> Databricks blog on Catalyst</a></li>
+<li><a href="#org524b302">6.2. <span class="done DONE">DONE</span> Cost Based Optimizer in Apache Spark 2.2</a></li>
+<li><a href="#orgfcf1c9c">6.3. Deep dive into the new Tungsten execution engine</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<p>
+#+startup hidestars indent showall
+</p>
+<div id="orga7b6cb4" class="outline-2">
+<h2 id="orga7b6cb4"><a id="ID-b9e76fec-d875-4b09-a1bc-5184b3665aba"></a><span class="section-number-2">1</span> Why Spark SQL?</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+Spark SQL aims to integrate relational data processing with Spark's functional programming API \cite{Armburst:2015}.
+</p>
+<ol class="org-ol">
+<li>Support relational processing both within Spark programs (on native RDDs) and on external data sources using a programmerfriendly API.</li>
+<li>Provide high performance using established DBMS techniques.</li>
+<li>Easily support new data sources, including semi-structured data and external databases amenable to query federation.</li>
+<li>Enable extension with advanced analytics algorithms such as graph processing and machine learning.</li>
+</ol>
+</div>
+</div>
+
+
+
+
+<div id="orgfa8d6f7" class="outline-2">
+<h2 id="orgfa8d6f7"><a id="ID-17e0553b-2afd-4019-992a-d41408fcdbad"></a><span class="section-number-2">2</span> Catalyst optimizer</h2>
+<div class="outline-text-2" id="text-2">
+</div>
+<div id="orgc48e197" class="outline-3">
+<h3 id="orgc48e197"><a id="ID-2d56b2dc-6a21-4cfb-89e4-7f7b285dc8c5"></a><span class="section-number-3">2.1</span> Analysis of logical plan (<a href="file:///home/simon/Dropbox/git/spark/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/analysis/Analyzer.scala">Analyzer)</a></h3>
+<div class="outline-text-3" id="text-2-1">
+<ul class="org-ul">
+<li>Provides a logical query plan analyzer, which translates UnresolvedAttributes and UnresolvedRelations into fully typed objects using information in a SessionCatalog.</li>
+<li>Provides a way to keep state during the analysis, this enables us to decouple the concerns</li>
+</ul>
+</div>
+
+<div id="org1ffbc45" class="outline-4">
+<h4 id="org1ffbc45"><a id="ID-a41ebfaa-d94b-4d31-94a2-402442a854a9"></a><span class="section-number-4">2.1.1</span> An attribute is called unresolved if we do not know its type or have not matched it to an input table ( or an alias)</h4>
+<div class="outline-text-4" id="text-2-1-1">
+</div>
+</div>
+<div id="org35bb8c6" class="outline-4">
+<h4 id="org35bb8c6"><a id="ID-7fa7573d-88e6-4a0f-a71f-7295659541f0"></a><span class="section-number-4">2.1.2</span> Spark SQL uses Catalyst rules and Catalog object that tracks the tables in all data sources to resolve these attributes.</h4>
+<div class="outline-text-4" id="text-2-1-2">
+</div>
+</div>
+</div>
+
+<div id="orged1f34e" class="outline-3">
+<h3 id="orged1f34e"><a id="ID-6f2bfc71-4dc1-484c-8e21-4fbbd39465b4"></a><span class="section-number-3">2.2</span> Logical optimization (<a href="file:///home/simon/Dropbox/git/spark/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/optimizer/Optimizer.scala#MissingReference">Optimizer)</a></h3>
+<div class="outline-text-3" id="text-2-2">
+</div>
+<div id="org7267d08" class="outline-4">
+<h4 id="org7267d08"><a id="ID-41c198df-d1a8-406c-b9e6-190f374adf63"></a><span class="section-number-4">2.2.1</span> <a href="file:///home/simon/Dropbox/git/spark/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/optimizer/Optimizer.scala#MissingReference">three kinds of operatorOptimizationRule</a></h4>
+<div class="outline-text-4" id="text-2-2-1">
+<ul class="org-ul">
+<li>Push down</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>Combine
+<ul class="org-ul">
+<li>CombineFilters</li>
+</ul></li>
+
+<li>Constant folding and strength reduction</li>
+</ul>
+</div>
+</div>
+
+<div id="orga670c31" class="outline-4">
+<h4 id="orga670c31"><a id="ID-beba84da-d9a3-41be-8ed1-595d3508a30b"></a><span class="section-number-4">2.2.2</span> <a href="file:///home/simon/Dropbox/git/spark/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/optimizer/Optimizer.scala#MissingReference">CombineFilters</a></h4>
+<div class="outline-text-4" id="text-2-2-2">
+<ul class="org-ul">
+<li><a href="file:///home/simon/Dropbox/git/spark/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/trees/TreeNode.scala#MissingReference">transform</a> (transformDown and transformUp)
+<ul class="org-ul">
+<li>Returns a copy of this node where `rule` has been recursively applied to the tree.</li>
+<li>tranformDown or tranformUp is directionality is expected.</li>
+</ul></li>
+<li><a href="file:///home/simon/Dropbox/git/spark/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/trees/TreeNode.scala#MissingReference">CurrentOrigin</a>
+<ul class="org-ul">
+<li>Provides a location for TreeNodes to ask about the context of their origin.  For example, which line of code is currently being parsed.</li>
+</ul></li>
+
+<li><a href="file:///home/simon/.m2/repository/org/scala-lang/scala-library/2.11.8/scala-library-2.11.8-sources.jar:scala/PartialFunction.scala#MissingReference">PartialFunction</a>
+<ul class="org-ul">
+<li>PF[A, B] where PF is defined at a subset of A (eg. divsiion)</li>
+<li><a href="http://sandrasi-sw.blogspot.com/2012/03/understanding-scalas-partially-applied.html">partial function vs partially applied function</a></li>
+</ul></li>
+</ul>
+
+
+
+<ul class="org-ul">
+<li><a href="file:///home/simon/Dropbox/git/spark/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/trees/TreeNode.scala#MissingReference">mapChildren</a>
+<ul class="org-ul">
+<li>Returns a copy of this node where `f` has been applied to all the nodes children.
+<ul class="org-ul">
+<li>return original TreeNode if no change happens</li>
+<li>m: Map =&gt; m.mapValues</li>
+<li>d: DataType =&gt; d  // Avoid unpacking structs</li>
+<li></li>
+</ul></li>
+</ul></li>
+</ul>
+</div>
+</div>
+
+<div id="orgeff4e7a" class="outline-4">
+<h4 id="orgeff4e7a"><a id="ID-203910f8-49e1-4c9f-915d-f421a2181948"></a><span class="section-number-4">2.2.3</span> <span class="done DONE">DONE</span> <a href="file:///home/simon/Dropbox/git/spark/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/optimizer/Optimizer.scala#MissingReference">ReorderJoin</a></h4>
+<div class="outline-text-4" id="text-2-2-3">
+<ul class="org-ul">
+<li>Brief code base structure description of Spark SQL and catalyst
+<ul class="org-ul">
+<li><a href="file:///home/simon/Dropbox/git/spark/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/plans/logical/LogicalPlanVisitor.scala#MissingReference">visit different kinds of logical plans</a>
+<ul class="org-ul">
+<li>most plans/oprators are defined in <a href="file:///home/simon/Dropbox/git/spark/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/plans/logical/basicLogicalOperators.scala#MissingReference">basicLogicalOperators.scala</a></li>
+</ul></li>
+
+<li><p>
+<a href="file:///home/simon/Dropbox/git/spark/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/optimizer/joins.scala#MissingReference">join.scala</a>
+</p>
+<ol class="org-ol">
+<li><a href="file:///home/simon/Dropbox/git/spark/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/optimizer/joins.scala#MissingReference">apply</a>
+<ul class="org-ul">
+<li><p>
+<a href="file:///home/simon/Dropbox/git/spark/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/planning/patterns.scala#MissingReference">ExtraceFiltersAndJoins</a>
+</p>
+<ul class="org-ul">
+<li>recursive call on flattenJoin to flatten the join operations</li>
+<li><p>
+<a href="https://github.com/jaceklaskowski/mastering-spark-sql-book/blob/master/spark-sql-SQLConf.adoc">SQLConf</a>  <a href="file:///home/simon/Dropbox/git/spark/sql/catalyst/src/main/scala/org/apache/spark/sql/internal/SQLConf.scala#MissingReference">(source link)</a> is a internal configuration store for parameters and hints used in Spark SQL. It offers the following methods to configure properties:
+</p>
+<ul class="org-ul">
+<li>get</li>
+<li>set</li>
+<li>unset</li>
+<li>clear</li>
+</ul>
+<p>
+and also has the accessor methods to read the current value of a configuration property or hint.
+</p>
+<blockquote>
+<p>
+scala&gt; spark.version
+res0: String = 2.4.0-SNAPSHOT
+</p>
+
+<p>
+import spark.sessionState.conf
+</p>
+
+<p>
+// accessing properties through accessor methods
+scala&gt; conf.numShufflePartitions
+res1: Int = 200
+</p>
+
+<p>
+// setting properties using aliases
+import org.apache.spark.sql.internal.SQLConf.SHUFFLE<sub>PARTITIONS</sub>
+conf.setConf(SHUFFLE<sub>PARTITIONS</sub>, 8)
+scala&gt; conf.numShufflePartitions
+res2: Int = 8
+</p>
+
+<p>
+// unset aka reset properties to the default value
+conf.unsetConf(SHUFFLE<sub>PARTITIONS</sub>)
+scala&gt; conf.numShufflePartitions
+res3: Int = 200
+</p>
+
+<p>
+// You could also access the internal SQLConf using get
+import org.apache.spark.sql.internal.SQLConf
+val cc = SQLConf.get
+scala&gt; cc == conf
+res4: Boolean = true
+</p>
+</blockquote></li>
+</ul>
+<p>
+-<a href="file:///home/simon/Dropbox/git/spark/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/optimizer/StarSchemaDetection.scala#MissingReference">StarSchemaDetection</a>
+</p>
+<ul class="org-ul">
+<li><a href="https://en.wikipedia.org/wiki/Cardinality_(data_modeling)">Cardinality</a> based heuristics</li>
+</ul></li>
+</ul></li>
+</ol>
+<p>
+2.<a href="file:///home/simon/Dropbox/git/spark/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/optimizer/joins.scala#MissingReference"> createOrderedJoin</a>
+   -<a href="file:///home/simon/.m2/repository/org/scala-lang/scala-library/2.11.8/scala-library-2.11.8-sources.jar:scala/collection/TraversableLike.scala#MissingReference">partition</a>
+</p></li>
+
+<li><a href="https://www.scala-lang.org/api/2.12.3/scala/annotation/tailrec.html">@tailrec</a>
+<ul class="org-ul">
+<li>A method annotation which verifies that the method will be compiled with tail call optimization. If it is present, the compiler will issue an error if the method cannot be optimized into a loop.</li>
+</ul></li>
+</ul></li>
+</ul>
+</div>
+
+<ol class="org-ol"><li><a id="orgf47f926"></a><a id="ID-d1273d58-f0ae-4282-97fa-95f235f87c97"></a>JoinType supported in Spark SQL (<a href="https://www.codeproject.com/Articles/33052/Visual-Representation-of-SQL-Joins">sql join</a>)<br /><div class="outline-text-5" id="text-2-2-3-1">
+<ul class="org-ul">
+<li><a href="file:///home/simon/Dropbox/git/spark/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/plans/joinTypes.scala#MissingReference">InnerLike extends JoinType</a></li>
+<li><a href="file:///home/simon/Dropbox/git/spark/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/CatalystTypeConverters.scala#MissingReference">Type converter between Scala and Catalyst</a></li>
+</ul>
+</div></li></ol>
+</div>
+<div id="org28f8745" class="outline-4">
+<h4 id="org28f8745"><a id="ID-6297cca1-b62d-4493-8a0f-4494b16b8483"></a><span class="section-number-4">2.2.4</span> <a href="file:///home/simon/Dropbox/git/spark/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/optimizer/Optimizer.scala#MissingReference">3-stage batch</a></h4>
+<div class="outline-text-4" id="text-2-2-4">
+<ul class="org-ul">
+<li>Batch is a set of rules</li>
+</ul>
+</div>
+</div>
+
+<div id="orgcaabfec" class="outline-4">
+<h4 id="orgcaabfec"><a id="ID-71808752-383a-4203-8d7f-d8b3ee5f836f"></a><span class="section-number-4">2.2.5</span> Remaining questions</h4>
+<div class="outline-text-4" id="text-2-2-5">
+</div>
+<ol class="org-ol"><li><a id="org88764aa"></a><a id="ID-7f56448e-ed2f-4388-83d3-fa83edba53c8"></a><a href="file:///home/simon/Dropbox/git/spark/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/optimizer/Optimizer.scala#MissingReference">Why define SimpleTestOptimizer object?</a><br /><div class="outline-text-5" id="text-2-2-5-1">
+<ul class="org-ul">
+<li>Define this optimizer to use in the test code?</li>
+</ul>
+</div></li>
+
+<li><a id="orgeff8f80"></a><a id="ID-d516cd32-4d1b-4d81-8826-f943fbcf24f5"></a>Cost-based vs rule-based optimization<br /><div class="outline-text-5" id="text-2-2-5-2">
+<p>
+<b>**</b>
+</p>
+<p>
+:ID:       f460162f-36da-4416-a39b-b21143127b27
+</p>
+</div></li></ol>
+</div>
+</div>
+
+
+
+
+
+<div id="orga3db699" class="outline-3">
+<h3 id="orga3db699"><a id="ID-92da16f0-c463-4a63-9e3c-d68ad373a6da"></a><span class="section-number-3">2.3</span> <span class="done DONE">DONE</span> Cost based optimization (CBO) (<a href="file:///home/simon/Dropbox/git/spark/sql/catalyst/src/main/scala/org/apache/spark/sql/catalyst/optimizer/CostBasedJoinReorder.scala#MissingReference">CostBasedJoinReorder.scala</a>)</h3>
+<div class="outline-text-3" id="text-2-3">
+<ul class="org-ul">
+<li>State "DONE"       from "STARTED"    <span class="timestamp-wrapper"><span class="timestamp">[2018-03-08 Thu 15:58]</span></span></li>
+</ul>
+<p>
+Cost-based join reorder.
+We may have several join reorder algorithms in the future. This class is the entry o these algorithms, and chooses which one to use.
+</p>
+</div>
+
+<div id="orge378a9b" class="outline-4">
+<h4 id="orge378a9b"><a id="ID-b93e96c1-1fcf-4042-87ca-89fa6974a4f4"></a><span class="section-number-4">2.3.1</span> <a href="https://github.com/jaceklaskowski/mastering-spark-sql-book/blob/master/spark-sql-SQLConf.adoc">SQLConf</a>  <a href="file:///home/simon/Dropbox/git/spark/sql/catalyst/src/main/scala/org/apache/spark/sql/internal/SQLConf.scala#MissingReference">(source link)</a> is a internal configuration store for parameters and hints used in Spark SQL. It offers the following methods to configure properties:</h4>
+<div class="outline-text-4" id="text-2-3-1">
+<ul class="org-ul">
+<li>get</li>
+<li>set</li>
+<li>unset</li>
+<li>clear</li>
+</ul>
+<p>
+and also has the accessor methods to read the current value of a configuration property or hint.
+</p>
+<blockquote>
+<p>
+scala&gt; spark.version
+res0: String = 2.4.0-SNAPSHOT
+</p>
+
+<p>
+import spark.sessionState.conf
+</p>
+
+<p>
+// accessing properties through accessor methods
+scala&gt; conf.numShufflePartitions
+res1: Int = 200
+</p>
+
+<p>
+// setting properties using aliases
+import org.apache.spark.sql.internal.SQLConf.SHUFFLE<sub>PARTITIONS</sub>
+conf.setConf(SHUFFLE<sub>PARTITIONS</sub>, 8)
+scala&gt; conf.numShufflePartitions
+res2: Int = 8
+</p>
+
+<p>
+// unset aka reset properties to the default value
+conf.unsetConf(SHUFFLE<sub>PARTITIONS</sub>)
+scala&gt; conf.numShufflePartitions
+res3: Int = 200
+</p>
+
+<p>
+// You could also access the internal SQLConf using get
+import org.apache.spark.sql.internal.SQLConf
+val cc = SQLConf.get
+scala&gt; cc == conf
+res4: Boolean = true
+</p>
+</blockquote>
+</div>
+</div>
+
+<div id="org0b2a2f2" class="outline-4">
+<h4 id="org0b2a2f2"><a id="ID-853126f8-4996-4010-8a9f-2f75924b64e7"></a><span class="section-number-4">2.3.2</span> apply</h4>
+<div class="outline-text-4" id="text-2-3-2">
+</div>
+</div>
+
+
+
+<div id="org8ca9bbb" class="outline-4">
+<h4 id="org8ca9bbb"><a id="ID-3bd491b9-54c9-44f9-ba7f-907bf8ba5501"></a><span class="section-number-4">2.3.3</span> reorder</h4>
+<div class="outline-text-4" id="text-2-3-3">
+<ul class="org-ul">
+<li>extractInnerJoins</li>
+</ul>
+<p>
+/**
+</p>
+<ul class="org-ul">
+<li>Extracts items of consecutive inner joins and join conditions.</li>
+<li>This method works for bushy trees and left/right deep trees.</li>
+</ul>
+<p>
+*/
+</p>
+<ul class="org-ul">
+<li>JoinReorderDP
+<ul class="org-ul">
+<li>reorder the joins using a dynamic programming algorithm</li>
+</ul></li>
+</ul>
+</div>
+</div>
+
+
+
+<div id="org167e918" class="outline-4">
+<h4 id="org167e918"><a id="ID-4f04ea1f-7340-4e10-995c-21b384f63761"></a><span class="section-number-4">2.3.4</span> replaceWithOrderedJoin</h4>
+<div class="outline-text-4" id="text-2-3-4">
+</div>
+</div>
+</div>
+
+
+<div id="org46b92ea" class="outline-3">
+<h3 id="org46b92ea"><a id="ID-16477982-85ae-43ef-8e5c-a663c5f9b1b8"></a><span class="section-number-3">2.4</span> <span class="todo STARTED">STARTED</span> Logical plan to physical plan (<a href="file:///home/simon/Dropbox/git/spark/sql/core/src/main/scala/org/apache/spark/sql/execution/SparkStrategies.scala#MissingReference">SparkStrategies.scala</a>)</h3>
+<div class="outline-text-3" id="text-2-4">
+<ul class="org-ul">
+<li>Logical plan &#x2013;&gt; SparkPlan &#x2013;&gt; Query Plan &#x2013;&gt; TreeNode &#x2013;&gt; Product &#x2013;&gt; scala.Any</li>
+
+<li>A Logical Plan is transformed to a Physical Plan by applying a set of Strategies</li>
+<li>Every Strategy uses pattern matching to convert a Logical Plan to a Physical Plan</li>
+</ul>
+</div>
+<div id="org0c97dee" class="outline-4">
+<h4 id="org0c97dee"><a id="ID-44f0a53e-91f1-433e-b76d-82bfaf1663be"></a><span class="section-number-4">2.4.1</span> SparkPlanner extends SparkStrategies (SparkPlanner.scala)</h4>
+<div class="outline-text-4" id="text-2-4-1">
+<ul class="org-ul">
+<li>SparkPlanner is a concrete Catalyst query planner that converts a logical plan to one or more physical plans using execution planning strategies with support for extra strategies (by means of ExperimentalMethods) and extraPlanningStrategies.</li>
+<li>SparkPlanner is available as planner of a SessionState. Currently, there are 10 types of planning strategies available</li>
+</ul>
+<div class="org-src-container">
+<pre class="src src-scala">  <span style="color: #5180b3;">class</span> <span style="color: #cd5542;">SparkPlanner</span>(
+  <span style="color: #5180b3;">val</span> <span style="color: #baba36;">sparkContext</span><span style="color: #5180b3;">:</span> <span style="color: #cd5542;">SparkContext</span>,
+  <span style="color: #5180b3;">val</span> <span style="color: #baba36;">conf</span><span style="color: #5180b3;">:</span> <span style="color: #cd5542;">SQLConf</span>,
+  <span style="color: #5180b3;">val</span> <span style="color: #baba36;">experimentalMethods</span><span style="color: #5180b3;">:</span> <span style="color: #cd5542;">ExperimentalMethods</span>)
+<span style="color: #5180b3;">extends</span> <span style="color: #cd5542;">SparkStrategies</span> {
+
+<span style="color: #5180b3;">def</span> <span style="color: #6aaf50;">numPartitions</span><span style="color: #5180b3;">:</span> <span style="color: #cd5542;">Int</span> <span style="color: #5180b3;">=</span> conf.numShufflePartitions
+
+<span style="color: #528fd1;">override</span> <span style="color: #5180b3;">def</span> <span style="color: #6aaf50;">strategies</span><span style="color: #5180b3;">:</span> <span style="color: #cd5542;">Seq</span>[<span style="color: #ab75c3;">Strategy</span>] <span style="color: #5180b3;">=</span>
+  experimentalMethods.extraStrategies ++
+    extraPlanningStrategies ++ (
+    <span style="color: #ab75c3;">DataSourceV2Strategy</span> ::
+    <span style="color: #ab75c3;">FileSourceStrategy</span> ::
+    <span style="color: #ab75c3;">DataSourceStrategy</span>(conf) ::
+    <span style="color: #ab75c3;">SpecialLimits</span> ::
+    <span style="color: #ab75c3;">Aggregation</span> ::
+    <span style="color: #ab75c3;">JoinSelection</span> ::
+    <span style="color: #ab75c3;">InMemoryScans</span> ::
+    <span style="color: #ab75c3;">BasicOperators</span> :: <span style="color: #ab75c3;">Nil</span>)
+</pre>
+</div>
+
+<ul class="org-ul">
+<li>SparkPlanner is called in IncrementalExecution</li>
+</ul>
+<div class="org-src-container">
+<pre class="src src-scala">    <span style="color: #7d7c61;">/**</span>
+<span style="color: #7d7c61;">    * A variant of [[QueryExecution]] that allows the execution of the given [[LogicalPlan]]</span>
+<span style="color: #7d7c61;">    * plan incrementally. Possibly preserving state in between each execution.</span>
+<span style="color: #7d7c61;">    */</span>
+<span style="color: #5180b3;">class</span> <span style="color: #cd5542;">IncrementalExecution</span>(
+    sparkSession<span style="color: #5180b3;">:</span> <span style="color: #cd5542;">SparkSession</span>,
+    logicalPlan<span style="color: #5180b3;">:</span> <span style="color: #cd5542;">LogicalPlan</span>,
+    <span style="color: #5180b3;">val</span> <span style="color: #baba36;">outputMode</span><span style="color: #5180b3;">:</span> <span style="color: #cd5542;">OutputMode</span>,
+    <span style="color: #5180b3;">val</span> <span style="color: #baba36;">checkpointLocation</span><span style="color: #5180b3;">:</span> <span style="color: #cd5542;">String</span>,
+    <span style="color: #5180b3;">val</span> <span style="color: #baba36;">runId</span><span style="color: #5180b3;">:</span> <span style="color: #cd5542;">UUID</span>,
+    <span style="color: #5180b3;">val</span> <span style="color: #baba36;">currentBatchId</span><span style="color: #5180b3;">:</span> <span style="color: #cd5542;">Long</span>,
+    <span style="color: #5180b3;">val</span> <span style="color: #baba36;">offsetSeqMetadata</span><span style="color: #5180b3;">:</span> <span style="color: #cd5542;">OffsetSeqMetadata</span>)
+  <span style="color: #5180b3;">extends</span> <span style="color: #cd5542;">QueryExecution</span>(sparkSession, logicalPlan) <span style="color: #5180b3;">with</span> <span style="color: #cd5542;">Logging</span> {
+
+  <span style="color: #656565;">// </span><span style="color: #757575;">Modified planner with stateful operations.</span>
+  <span style="color: #528fd1;">override</span> <span style="color: #5180b3;">val</span> <span style="color: #baba36;">planner</span><span style="color: #5180b3;">:</span> <span style="color: #cd5542;">SparkPlanner</span> <span style="color: #5180b3;">=</span> <span style="color: #5180b3;">new</span> <span style="color: #cd5542;">SparkPlanner</span>(
+      sparkSession.sparkContext,
+      sparkSession.sessionState.conf,
+      sparkSession.sessionState.experimentalMethods) {
+    <span style="color: #528fd1;">override</span> <span style="color: #5180b3;">def</span> <span style="color: #6aaf50;">strategies</span><span style="color: #5180b3;">:</span> <span style="color: #cd5542;">Seq</span>[<span style="color: #ab75c3;">Strategy</span>] <span style="color: #5180b3;">=</span>
+      extraPlanningStrategies ++
+      sparkSession.sessionState.planner.strategies
+
+    <span style="color: #528fd1;">override</span> <span style="color: #5180b3;">def</span> <span style="color: #6aaf50;">extraPlanningStrategies</span><span style="color: #5180b3;">:</span> <span style="color: #cd5542;">Seq</span>[<span style="color: #ab75c3;">Strategy</span>] <span style="color: #5180b3;">=</span>
+      <span style="color: #ab75c3;">StreamingJoinStrategy</span> ::
+      <span style="color: #ab75c3;">StatefulAggregationStrategy</span> ::
+      <span style="color: #ab75c3;">FlatMapGroupsWithStateStrategy</span> ::
+      <span style="color: #ab75c3;">StreamingRelationStrategy</span> ::
+      <span style="color: #ab75c3;">StreamingDeduplicationStrategy</span> :: <span style="color: #ab75c3;">Nil</span>
+  }
+</pre>
+</div>
+</div>
+
+<ol class="org-ol"><li><a id="orgd38eaf5"></a><a id="ID-bfa33eab-cf4d-4488-bc15-d32cc6b7a0bd"></a>JoinSelection<br /><div class="outline-text-5" id="text-2-4-1-1">
+<p>
+Select the proper physical plan for join based on joining keys and size of logical plan.
+</p>
+<ol class="org-ol">
+<li><p>
+At first, uses the <i><b>ExtractEquiJoinKeys</b></i> pattern to find joins where at least some of the predicates can be evaluated by matching join keys. If found, join implementations are chosen with the following precedence:
+</p>
+<ul class="org-ul">
+<li>Broadcast hash join (BHJ):</li>
+</ul>
+<p>
+BHJ is not supported for full outer join. For right outer join, we only can broadcast the left side. For left outer, left semi, left anti and the internal join type ExistenceJoin, we only can broadcast the right side. For inner like join, we can broadcast both sides. Normally, BHJ can perform faster than the other join algorithms when the broadcast side is small. However, broadcasting tables is a network-intensive operation. It could cause OOM or perform worse than the other join algorithms, especially when the build/broadcast side is big.
+</p>
+<ul class="org-ul">
+<li>For the supported cases, users can specify the broadcast hint (e.g. the user applied the <i><b>org.apache.spark.sql.functions.broadcast()</b></i> function to a DataFrame) and session-based <i><b>SQLConf.AUTO-BROADCASTJOIN-THRESHOLD</b></i> threshold to adjust whether BHJ is used and which join side is broadcast.
+<ol class="org-ol">
+<li>Broadcast the join side with the broadcast hint, even if the size is larger than <i><b>SQLConf.AUTO-BROADCASTJOIN-THRESHOLD</b></i>. If both sides have the hint (only when the type is inner like join), the side with a smaller estimated physical size will be broadcast.</li>
+<li>Respect the <i><b>SQLConf.AUTO-BROADCASTJOIN-THRESHOLD</b></i> threshold and broadcast the side whose estimated physical size is smaller than the threshold. If both sides are below the threshold, broadcast the smaller side. If neither is smaller, BHJ is not used.</li>
+</ol></li>
+</ul></li>
+<li>Shuffle hash join: if the average size of a single partition is small enough to build a hash table.
+<ul class="org-ul">
+<li>Sort merge: if the matching join keys are sortable.</li>
+</ul></li>
+<li>If there is no joining keys, Join implementations are chosen with the following precedence:
+<ul class="org-ul">
+<li><p>
+BroadcastNestedLoopJoin (BNLJ):
+BNLJ supports all the join types but the impl is OPTIMIZED for the following scenarios: For right outer join, the left side is broadcast. For left outer, left semi, left anti and the internal join type ExistenceJoin, the right side is broadcast. For inner like joins, either side is broadcast.
+</p>
+
+<p>
+Like BHJ, users still can specify the broadcast hint and session-based <i><b>SQLConf.AUTO-BROADCASTJOIN-THRESHOLD</b></i> threshold to impact which side is broadcast.
+</p>
+
+<ul class="org-ul">
+<li>Broadcast the join side with the broadcast hint, even if the size is larger than <i><b>SQLConf.AUTO-BROADCASTJOIN-THRESHOLD</b></i>. If both sides have the hint (i.e., just for inner-like join), the side with a smaller estimated physical size will be broadcast.</li>
+<li>Respect the <i><b>SQLConf.AUTO-BROADCASTJOIN-THRESHOLD</b></i> threshold and broadcast the side whose estimated physical size is smaller than the threshold. If both sides are below the threshold, broadcast the smaller side. If neither is smaller, BNLJ is not used.</li>
+</ul></li>
+
+<li>CartesianProduct: for inner like join, CartesianProduct is the fallback option.</li>
+
+<li>BroadcastNestedLoopJoin (BNLJ):
+For the other join types, BNLJ is the fallback option. Here, we just pick the broadcast side with the broadcast hint. If neither side has a hint, we broadcast the side with the smaller estimated physical size.</li>
+</ul></li>
+</ol>
+</div></li>
+
+<li><a id="orgb1c6b7a"></a><a id="ID-d899ee6e-3772-479f-8e2f-b8d58f0e17fe"></a>InMemoryScans (SparkStrategies.scala)<br /><div class="outline-text-5" id="text-2-4-1-2">
+<div class="org-src-container">
+<pre class="src src-scala"><span style="color: #5180b3;">object</span> <span style="color: #ab75c3;">InMemoryScans</span> <span style="color: #5180b3;">extends</span> <span style="color: #cd5542;">Strategy</span> {
+  <span style="color: #5180b3;">def</span> <span style="color: #6aaf50;">apply</span>(plan<span style="color: #5180b3;">:</span> <span style="color: #cd5542;">LogicalPlan</span>)<span style="color: #5180b3;">:</span> <span style="color: #cd5542;">Seq</span>[<span style="color: #ab75c3;">SparkPlan</span>] <span style="color: #5180b3;">=</span> plan <span style="color: #5180b3;">match</span> {
+    <span style="color: #5180b3;">case</span> <span style="color: #cd5542;">PhysicalOperation</span>(<span style="color: #baba36;">projectList</span>, <span style="color: #baba36;">filters</span>, <span style="color: #baba36;">mem</span><span style="color: #5180b3;">:</span> <span style="color: #cd5542;">InMemoryRelation</span>) <span style="color: #5180b3;">=&gt;</span>
+      pruneFilterProject(
+        projectList,
+        filters,
+        identity[<span style="color: #ab75c3;">Seq</span>[<span style="color: #ab75c3;">Expression</span>]], <span style="color: #656565;">// </span><span style="color: #757575;">All filters still need to be evaluated.</span>
+        <span style="color: #ab75c3;">InMemoryTableScanExec</span>(<span style="color: #5180b3;">_</span>, filters, mem)) :: <span style="color: #ab75c3;">Nil</span>
+    <span style="color: #5180b3;">case</span> <span style="color: #5180b3;">_</span> <span style="color: #5180b3;">=&gt;</span> <span style="color: #ab75c3;">Nil</span>
+  }
+}
+</pre>
+</div>
+</div></li></ol>
+</div>
+</div>
+
+<div id="org30e0bfc" class="outline-3">
+<h3 id="org30e0bfc"><a id="ID-ecf961af-368a-47ad-afe0-e02164a3388e"></a><span class="section-number-3">2.5</span> <span class="todo STARTED">STARTED</span> Physical plan</h3>
+<div class="outline-text-3" id="text-2-5">
+<ul class="org-ul">
+<li>A Logical Plan describes computation on datasets without defining how to conduct the computation</li>
+<li>A Physical Plan describes computation on datasets with specific definitions on how to conduct the computation.</li>
+<li>A physical plan is executable.</li>
+</ul>
+</div>
+</div>
+
+
+<div id="org36f06a5" class="outline-3">
+<h3 id="org36f06a5"><a id="ID-af11d0dc-ca9a-4b61-8687-55926179748e"></a><span class="section-number-3">2.6</span> Code generation</h3>
+<div class="outline-text-3" id="text-2-6">
+</div>
+<div id="orgac32edf" class="outline-4">
+<h4 id="orgac32edf"><a id="ID-05118ed2-e718-4ee4-8945-d566074bd671"></a><span class="section-number-4">2.6.1</span> <a href="https://docs.scala-lang.org/overviews/quasiquotes/intro.html">Quasiquote</a></h4>
+<div class="outline-text-4" id="text-2-6-1">
+</div>
+</div>
+</div>
+
+
+
+<div id="org6f04307" class="outline-3">
+<h3 id="org6f04307"><a id="ID-0850e97b-59d0-402e-affb-6ddbd3fb201c"></a><span class="section-number-3">2.7</span> Limits of Catalyst optimizer</h3>
+<div class="outline-text-3" id="text-2-7">
+</div>
+<div id="org27d8301" class="outline-4">
+<h4 id="org27d8301"><a id="ID-0ac45a9e-a523-4c70-9d34-14163f91dd41"></a><span class="section-number-4">2.7.1</span> Cannot optimize functional operation (such as filer)</h4>
+<div class="outline-text-4" id="text-2-7-1">
+<ul class="org-ul">
+<li>ds.filter(p <code>&gt; p.city =</code> "Boston")</li>
+<li>it is impossible for Catalyst to introspect the lambda function</li>
+<li>introspect scala function definition is not possible in Scala</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+
+<div id="org922b4f0" class="outline-2">
+<h2 id="org922b4f0"><a id="ID-ffc53055-2399-4f2f-8227-e43e8db240a0"></a><span class="section-number-2">3</span> GraphFrame on Spark SQL</h2>
+<div class="outline-text-2" id="text-3">
+</div>
+<div id="org178e14e" class="outline-3">
+<h3 id="org178e14e"><a id="ID-b431520d-c16c-4ff7-b08c-493dac909847"></a><span class="section-number-3">3.1</span> <a href="file:///home/simon/Dropbox/Skill/System/Images/graph-frame.png">Graphframe inside Spark</a></h3>
+<div class="outline-text-3" id="text-3-1">
+</div>
+</div>
+</div>
+
+
+
+
+
+<div id="orgfdb8a49" class="outline-2">
+<h2 id="orgfdb8a49"><a id="ID-94f45345-9d68-4580-bbd5-56a9b17e81ee"></a><span class="section-number-2">4</span> Related questions</h2>
+<div class="outline-text-2" id="text-4">
+</div>
+<div id="orgd9fe46e" class="outline-3">
+<h3 id="orgd9fe46e"><a id="ID-a728f2a6-3677-4010-a3cb-46a243248df4"></a><span class="section-number-3">4.1</span> <span class="todo TODO">TODO</span> <a href="https://stackoverflow.com/questions/45181920/how-to-tune-mapping-filtering-on-big-datasets-cross-joined-from-two-datasets">Why does my code on Spark SQL run slower than SQL server</a></h3>
+<div class="outline-text-3" id="text-4-1">
+</div>
+</div>
+
+
+
+
+
+<div id="org9ff1af3" class="outline-3">
+<h3 id="org9ff1af3"><a id="ID-3312b59e-789e-4773-a1e9-339a07e3c8e5"></a><span class="section-number-3">4.2</span> <span class="todo TODO">TODO</span> In DF API, logical plan is eagerly evaluated while query results is computed lazily. Create an example for this.</h3>
+<div class="outline-text-3" id="text-4-2">
+<ul class="org-ul">
+<li><p>
+To simplify programming in DF, the API analyze logical plan eagerly (i.e. to identify whether the column name used in expression exist in the underlying tables, and whether their data types are appropriate), even though query results are computed lazily. Therefore, Spark SQL reports an error as soon as user types an invalid line of code instead of waiting until exectution.
+</p>
+<p>
+:ID:       7ed5fee6-5f8a-4ea8-97bc-c7ef67b780bc
+</p></li>
+</ul>
+</div>
+</div>
+</div>
+
+
+
+<div id="org22b5ed0" class="outline-2">
+<h2 id="org22b5ed0"><a id="ID-a050e264-bfb6-413f-9aa5-40e329ee63b2"></a><span class="section-number-2">5</span> Related reading</h2>
+<div class="outline-text-2" id="text-5">
+</div>
+<div id="orgf11366a" class="outline-3">
+<h3 id="orgf11366a"><a id="ID-ddd7aa87-1739-4b36-9fa6-f96cd2218d76"></a><span class="section-number-3">5.1</span> <span class="todo TODO">TODO</span> <a href="https://static.googleusercontent.com/media/research.google.com/en//pubs/archive/46103.pdf">Spanner: Becoming a SQL System</a></h3>
+<div class="outline-text-3" id="text-5-1">
+</div>
+</div>
+</div>
+
+
+
+<div id="org0e8643f" class="outline-2">
+<h2 id="org0e8643f"><a id="ID-a9cf4e02-2ec1-4cf6-8413-39d413c29e5f"></a><span class="section-number-2">6</span> References</h2>
+<div class="outline-text-2" id="text-6">
+</div>
+<div id="orgd26dbee" class="outline-3">
+<h3 id="orgd26dbee"><a id="ID-6e97a5a4-a6c9-4569-b984-37d09028d331"></a><span class="section-number-3">6.1</span> <span class="done DONE">DONE</span> <a href="https://databricks.com/blog/2015/04/13/deep-dive-into-spark-sqls-catalyst-optimizer.html">Databricks blog on Catalyst</a></h3>
+<div class="outline-text-3" id="text-6-1">
+<ul class="org-ul">
+<li>State "DONE"       from "STARTED"    <span class="timestamp-wrapper"><span class="timestamp">[2018-03-05 Mon 14:13]</span></span></li>
+</ul>
+</div>
+</div>
+<div id="org524b302" class="outline-3">
+<h3 id="org524b302"><a id="ID-73afa2b6-3d46-4e4d-bf07-10ffecf922d1"></a><span class="section-number-3">6.2</span> <span class="done DONE">DONE</span> <a href="https://databricks.com/blog/2017/08/31/cost-based-optimizer-in-apache-spark-2-2.html">Cost Based Optimizer in Apache Spark 2.2</a></h3>
+<div class="outline-text-3" id="text-6-2">
+<ul class="org-ul">
+<li>State "DONE"       from "STARTED"    <span class="timestamp-wrapper"><span class="timestamp">[2018-03-05 Mon 13:49]</span></span></li>
+</ul>
+</div>
+</div>
+<div id="orgfcf1c9c" class="outline-3">
+<h3 id="orgfcf1c9c"><a id="ID-0ed6b435-78a3-4484-a574-496f8ee49665"></a><span class="section-number-3">6.3</span> <a href="https://databricks.com/blog/2016/05/23/apache-spark-as-a-compiler-joining-a-billion-rows-per-second-on-a-laptop.html">Deep dive into the new Tungsten execution engine</a></h3>
+<div class="outline-text-3" id="text-6-3">
+<ul class="org-ul">
+<li>Whole-stage code generation</li>
+<li>vectorization of complex operation which is difficult for whole-stage code generation to generate efficient code.</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: Simon</p>
+<p class="date">Created: 2018-03-14 Wed 13:32</p>
+<p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>
